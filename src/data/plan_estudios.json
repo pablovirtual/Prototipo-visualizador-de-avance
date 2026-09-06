@@ -1,0 +1,86 @@
+[
+  {
+    "id": "MAT101",
+    "nombre": "Cálculo Diferencial",
+    "semestre": 1,
+    "creditos": 4,
+    "prerrequisitos": []
+  },
+  {
+    "id": "PRO101",
+    "nombre": "Fundamentos de Programación",
+    "semestre": 1,
+    "creditos": 4,
+    "prerrequisitos": []
+  },
+  {
+    "id": "COM101",
+    "nombre": "Comunicación Oral y Escrita",
+    "semestre": 1,
+    "creditos": 3,
+    "prerrequisitos": []
+  },
+  {
+    "id": "ING101",
+    "nombre": "Inglés I",
+    "semestre": 1,
+    "creditos": 2,
+    "prerrequisitos": []
+  },
+  {
+    "id": "MAT201",
+    "nombre": "Cálculo Integral",
+    "semestre": 2,
+    "creditos": 4,
+    "prerrequisitos": ["MAT101"]
+  },
+  {
+    "id": "PRO201",
+    "nombre": "Programación Orientada a Objetos",
+    "semestre": 2,
+    "creditos": 4,
+    "prerrequisitos": ["PRO101"]
+  },
+  {
+    "id": "FIS201",
+    "nombre": "Física Mecánica",
+    "semestre": 2,
+    "creditos": 4,
+    "prerrequisitos": ["MAT101"]
+  },
+  {
+    "id": "ING201",
+    "nombre": "Inglés II",
+    "semestre": 2,
+    "creditos": 2,
+    "prerrequisitos": ["ING101"]
+  },
+  {
+    "id": "MAT301",
+    "nombre": "Álgebra Lineal",
+    "semestre": 3,
+    "creditos": 4,
+    "prerrequisitos": ["MAT201"]
+  },
+  {
+    "id": "EST301",
+    "nombre": "Estructuras de Datos",
+    "semestre": 3,
+    "creditos": 4,
+    "prerrequisitos": ["PRO201"]
+  },
+  {
+    "id": "BDD301",
+    "nombre": "Bases de Datos",
+    "semestre": 3,
+    "creditos": 3,
+    "prerrequisitos": ["PRO201"]
+  },
+  {
+    "id": "ING301",
+    "nombre": "Inglés III",
+    "semestre": 3,
+    "creditos": 2,
+    "prerrequisitos": ["ING201"]
+  }
+]

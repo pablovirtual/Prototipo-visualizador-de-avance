@@ -1,0 +1,157 @@
+:root {
+  color: #1f2937;
+  background: #f5f7fb;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.curriculum-page {
+  width: min(1200px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 4rem 0;
+}
+
+.page-header {
+  max-width: 640px;
+  margin-bottom: 3rem;
+}
+
+.eyebrow,
+.semester-label,
+.subject-id {
+  margin: 0;
+  color: #4f46e5;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1,
+h2,
+h3 {
+  color: #172554;
+  line-height: 1.15;
+}
+
+h1 {
+  margin: 0.5rem 0 0.75rem;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  letter-spacing: -0.04em;
+}
+
+.page-description {
+  margin-bottom: 0;
+  color: #64748b;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.semester-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.semester-group {
+  padding: 1.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.05);
+}
+
+.semester-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.semester-heading h2 {
+  margin: 0.3rem 0 0;
+  font-size: 1.45rem;
+}
+
+.subject-count {
+  flex: none;
+  padding: 0.4rem 0.7rem;
+  color: #475569;
+  background: #f1f5f9;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.subject-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+}
+
+.subject-card {
+  min-height: 150px;
+  padding: 1.25rem;
+  background: linear-gradient(145deg, #f8faff, #eef2ff);
+  border: 1px solid #dbe4ff;
+  border-radius: 0.75rem;
+}
+
+.subject-card h3 {
+  margin: 0.65rem 0 1.5rem;
+  font-size: 1.05rem;
+}
+
+.credits {
+  margin-bottom: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.credits strong {
+  color: #312e81;
+}
+
+@media (max-width: 640px) {
+  .curriculum-page {
+    width: min(100% - 1.25rem, 1200px);
+    padding: 2.5rem 0;
+  }
+
+  .semester-group {
+    padding: 1.1rem;
+  }
+
+  .semester-heading {
+    align-items: flex-start;
+  }
+
+  .subject-grid {
+    grid-template-columns: 1fr;
+  }
+}
