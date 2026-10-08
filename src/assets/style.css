@@ -31,7 +31,7 @@ select {
 
 .page-header {
   max-width: 640px;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 .eyebrow,
@@ -70,6 +70,88 @@ h1 {
   color: #64748b;
   font-size: 1.05rem;
   line-height: 1.6;
+}
+
+.progress-panel {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  color: #ffffff;
+  background: linear-gradient(135deg, #172554, #312e81);
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgb(23 37 84 / 0.18);
+}
+
+.progress-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.progress-label {
+  margin-bottom: 0.35rem;
+  color: #c7d2fe;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.progress-summary h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+}
+
+.reset-button {
+  padding: 0.65rem 0.9rem;
+  color: #ffffff;
+  background: rgb(255 255 255 / 0.12);
+  border: 1px solid rgb(255 255 255 / 0.45);
+  border-radius: 0.65rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.reset-button:hover:not(:disabled),
+.reset-button:focus-visible {
+  background: rgb(255 255 255 / 0.22);
+}
+
+.reset-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.progress-track {
+  height: 0.75rem;
+  margin: 1.25rem 0 0.85rem;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.18);
+  border-radius: 999px;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  background: #a5f3fc;
+  border-radius: inherit;
+  transition: width 180ms ease;
+}
+
+.progress-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+}
+
+.progress-details p {
+  margin-bottom: 0;
+  color: #e0e7ff;
+}
+
+.progress-details strong {
+  color: #ffffff;
 }
 
 .semester-list {
@@ -115,11 +197,25 @@ h1 {
 }
 
 .subject-card {
+  display: flex;
+  flex-direction: column;
   min-height: 150px;
   padding: 1.25rem;
   background: linear-gradient(145deg, #f8faff, #eef2ff);
   border: 1px solid #dbe4ff;
   border-radius: 0.75rem;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.subject-card--completed {
+  background: linear-gradient(145deg, #ecfdf5, #d1fae5);
+  border-color: #6ee7b7;
+  box-shadow: inset 0 0 0 1px rgb(5 150 105 / 0.08);
+}
+
+.subject-card--completed .subject-id,
+.subject-card--completed .credits strong {
+  color: #047857;
 }
 
 .subject-card h3 {
@@ -128,9 +224,33 @@ h1 {
 }
 
 .credits {
-  margin-bottom: 0;
+  margin-bottom: 1.25rem;
   color: #64748b;
   font-size: 0.9rem;
+}
+
+.completion-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: auto;
+  color: #334155;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.completion-control input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: #059669;
+  cursor: pointer;
+}
+
+.completion-control input:focus-visible {
+  outline: 3px solid rgb(79 70 229 / 0.3);
+  outline-offset: 2px;
 }
 
 .credits strong {
@@ -145,6 +265,19 @@ h1 {
 
   .semester-group {
     padding: 1.1rem;
+  }
+
+  .progress-panel {
+    padding: 1.1rem;
+  }
+
+  .progress-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .reset-button {
+    width: 100%;
   }
 
   .semester-heading {

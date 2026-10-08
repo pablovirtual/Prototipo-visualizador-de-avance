@@ -9,6 +9,10 @@ El proyecto utiliza datos estáticos locales, por lo que no requiere backend ni 
 - Muestra la malla curricular completa agrupada por semestre.
 - Ordena los semestres de forma ascendente.
 - Renderiza una tarjeta por materia con su ID, nombre y créditos.
+- Permite marcar y desmarcar materias como cursadas mediante controles accesibles.
+- Conserva el avance en el navegador utilizando `localStorage`.
+- Calcula el porcentaje, las materias y los créditos completados.
+- Permite restablecer el avance guardado con confirmación previa.
 - Incluye datos de prerrequisitos en la estructura curricular para futuras funcionalidades de avance y disponibilidad de materias.
 - Adapta la visualización a pantallas de escritorio y móviles.
 
@@ -80,4 +84,12 @@ Las materias se definen en `src/data/plan_estudios.json`. Cada registro contiene
 }
 ```
 
-El campo `prerrequisitos` almacena IDs de otras materias y se conservará para implementar, en futuras fases, el cálculo de avance académico y la disponibilidad de inscripción.
+El campo `prerrequisitos` almacena IDs de otras materias y se conservará para implementar,
+en futuras fases, la disponibilidad de inscripción según las materias aprobadas.
+
+## Persistencia del avance
+
+Las materias cursadas se guardan en el navegador con la clave
+`avanceCurricular.materiasCursadas`. El valor es un arreglo JSON con los IDs de las
+materias seleccionadas. La información es local al navegador y no se sincroniza entre
+dispositivos.

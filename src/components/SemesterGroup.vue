@@ -10,7 +10,17 @@ defineProps({
     type: Array,
     required: true,
   },
+  materiasCursadas: {
+    type: Set,
+    required: true,
+  },
 })
+
+const emit = defineEmits(['toggle-cursada'])
+
+function alternarMateria(idMateria) {
+  emit('toggle-cursada', idMateria)
+}
 </script>
 
 <template>
@@ -24,7 +34,13 @@ defineProps({
     </div>
 
     <div class="subject-grid">
-      <SubjectCard v-for="materia in materias" :key="materia.id" :materia="materia" />
+      <SubjectCard
+        v-for="materia in materias"
+        :key="materia.id"
+        :materia="materia"
+        :cursada="materiasCursadas.has(materia.id)"
+        @toggle-cursada="alternarMateria"
+      />
     </div>
   </section>
 </template>
