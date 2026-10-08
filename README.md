@@ -44,6 +44,16 @@ Previsualiza la compilación de producción:
 npm run preview
 ```
 
+## Despliegue
+
+El proyecto se publica automáticamente en GitHub Pages mediante GitHub Actions cada
+vez que se envían cambios a la rama `main`. También es posible ejecutar el flujo
+manualmente desde la pestaña **Actions** del repositorio.
+
+Sitio del prototipo:
+
+https://pablovirtual.github.io/Prototipo-visualizador-de-avance/
+
 ## Estructura principal
 
 ```text
