@@ -14,6 +14,10 @@ defineProps({
     type: Set,
     required: true,
   },
+  estadosMaterias: {
+    type: Map,
+    required: true,
+  },
 })
 
 const emit = defineEmits(['toggle-cursada'])
@@ -39,6 +43,10 @@ function alternarMateria(idMateria) {
         :key="materia.id"
         :materia="materia"
         :cursada="materiasCursadas.has(materia.id)"
+        :disponible="estadosMaterias.get(materia.id)?.disponible ?? false"
+        :prerrequisitos-pendientes="
+          estadosMaterias.get(materia.id)?.prerrequisitosPendientes ?? []
+        "
         @toggle-cursada="alternarMateria"
       />
     </div>

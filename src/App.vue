@@ -2,10 +2,23 @@
 import { computed, ref, watch } from 'vue'
 import SemesterGroup from './components/SemesterGroup.vue'
 import planEstudios from './data/plan_estudios.json'
+import {
+  alternarMateriaCursada as calcularSiguienteAvance,
+  calcularEstadisticas,
+  crearIndiceMaterias,
+  normalizarMateriasCursadas,
+  obtenerPrerrequisitosPendientes,
+  validarPlanEstudios,
+} from './utils/curriculum.js'
 
 const STORAGE_KEY = 'avanceCurricular.materiasCursadas'
-const materias = ref(planEstudios)
-const idsMateriasValidas = new Set(planEstudios.map((materia) => materia.id))
+const materias = planEstudios
+const indiceMaterias = crearIndiceMaterias(materias)
+const erroresPlan = validarPlanEstudios(materias)
+
+if (erroresPlan.length > 0) {
+  console.error('El plan de estudios contiene errores:', erroresPlan)
+}
 
 function cargarMateriasCursadas() {
   try {
@@ -15,19 +28,18 @@ function cargarMateriasCursadas() {
       return []
     }
 
-    return [...new Set(datosGuardados)].filter(
-      (id) => typeof id === 'string' && idsMateriasValidas.has(id),
-    )
+    return normalizarMateriasCursadas(datosGuardados, materias)
   } catch {
     return []
   }
 }
 
 const materiasCursadas = ref(cargarMateriasCursadas())
+const mensajeEstado = ref('')
 const idsMateriasCursadas = computed(() => new Set(materiasCursadas.value))
 
 const materiasPorSemestre = computed(() => {
-  const grupos = materias.value.reduce((resultado, materia) => {
+  const grupos = materias.reduce((resultado, materia) => {
     if (!resultado[materia.semestre]) {
       resultado[materia.semestre] = []
     }
@@ -44,25 +56,34 @@ const materiasPorSemestre = computed(() => {
     }))
 })
 
-const totalCreditos = computed(() =>
-  materias.value.reduce((total, materia) => total + materia.creditos, 0),
-)
+const estadisticas = computed(() => calcularEstadisticas(materias, idsMateriasCursadas.value))
 
-const creditosCompletados = computed(() =>
-  materias.value.reduce(
-    (total, materia) =>
-      total + (idsMateriasCursadas.value.has(materia.id) ? materia.creditos : 0),
-    0,
-  ),
-)
+const estadosMaterias = computed(() => {
+  const estados = new Map()
 
-const porcentajeAvance = computed(() => {
-  if (materias.value.length === 0) {
-    return 0
+  for (const materia of materias) {
+    const cursada = idsMateriasCursadas.value.has(materia.id)
+    const prerrequisitosPendientes = obtenerPrerrequisitosPendientes(
+      materia,
+      idsMateriasCursadas.value,
+      indiceMaterias,
+    )
+
+    estados.set(materia.id, {
+      cursada,
+      disponible: cursada || prerrequisitosPendientes.length === 0,
+      prerrequisitosPendientes,
+    })
   }
 
-  return Math.round((materiasCursadas.value.length / materias.value.length) * 100)
+  return estados
 })
+
+const materiasDisponibles = computed(
+  () =>
+    [...estadosMaterias.value.values()].filter((estado) => estado.disponible && !estado.cursada)
+      .length,
+)
 
 watch(materiasCursadas, (ids) => {
   try {
@@ -73,13 +94,29 @@ watch(materiasCursadas, (ids) => {
 })
 
 function alternarMateriaCursada(idMateria) {
-  if (!idsMateriasValidas.has(idMateria)) {
+  if (!indiceMaterias.has(idMateria)) {
     return
   }
 
-  materiasCursadas.value = idsMateriasCursadas.value.has(idMateria)
-    ? materiasCursadas.value.filter((id) => id !== idMateria)
-    : [...materiasCursadas.value, idMateria]
+  const estabaCursada = idsMateriasCursadas.value.has(idMateria)
+  const cantidadAnterior = materiasCursadas.value.length
+  const siguienteEstado = calcularSiguienteAvance(idMateria, materiasCursadas.value, materias)
+
+  materiasCursadas.value = siguienteEstado
+
+  if (estabaCursada) {
+    const dependientesActualizados = cantidadAnterior - siguienteEstado.length - 1
+    const descripcionDependientes =
+      dependientesActualizados === 1
+        ? '1 materia dependiente'
+        : `${dependientesActualizados} materias dependientes`
+    mensajeEstado.value =
+      dependientesActualizados > 0
+        ? `Materia desmarcada. También se actualizaron ${descripcionDependientes}.`
+        : 'Materia desmarcada.'
+  } else {
+    mensajeEstado.value = 'Materia marcada como cursada. Se actualizaron las disponibles.'
+  }
 }
 
 function restablecerAvance() {
@@ -88,6 +125,7 @@ function restablecerAvance() {
     window.confirm('¿Quieres eliminar todo el avance guardado?')
   ) {
     materiasCursadas.value = []
+    mensajeEstado.value = 'Se restableció todo el avance curricular.'
   }
 }
 </script>
@@ -98,7 +136,7 @@ function restablecerAvance() {
       <p class="eyebrow">Plan de estudios</p>
       <h1>Malla Curricular</h1>
       <p class="page-description">
-        Consulta las materias organizadas por semestre de tu carrera.
+        Consulta tu avance y descubre qué materias están disponibles según sus prerrequisitos.
       </p>
     </header>
 
@@ -106,7 +144,7 @@ function restablecerAvance() {
       <div class="progress-summary">
         <div>
           <p class="progress-label">Tu avance</p>
-          <h2 id="progress-title">{{ porcentajeAvance }}% completado</h2>
+          <h2 id="progress-title">{{ estadisticas.porcentaje }}% completado</h2>
         </div>
         <button
           class="reset-button"
@@ -124,15 +162,41 @@ function restablecerAvance() {
         aria-label="Progreso de materias cursadas"
         aria-valuemin="0"
         aria-valuemax="100"
-        :aria-valuenow="porcentajeAvance"
+        :aria-valuenow="estadisticas.porcentaje"
       >
-        <span class="progress-fill" :style="{ width: `${porcentajeAvance}%` }"></span>
+        <span class="progress-fill" :style="{ width: `${estadisticas.porcentaje}%` }"></span>
       </div>
 
       <div class="progress-details" aria-live="polite">
-        <p><strong>{{ materiasCursadas.length }}</strong> de {{ materias.length }} materias</p>
-        <p><strong>{{ creditosCompletados }}</strong> de {{ totalCreditos }} créditos</p>
+        <p>
+          <strong>{{ estadisticas.materiasCompletadas }}</strong> de
+          {{ estadisticas.totalMaterias }} materias
+        </p>
+        <p>
+          <strong>{{ estadisticas.creditosCompletados }}</strong> de
+          {{ estadisticas.totalCreditos }} créditos
+        </p>
+        <p><strong>{{ materiasDisponibles }}</strong> disponibles para cursar</p>
       </div>
+      <p v-if="mensajeEstado" class="progress-feedback" aria-live="polite">
+        {{ mensajeEstado }}
+      </p>
+    </section>
+
+    <section class="availability-guide" aria-labelledby="availability-title">
+      <div>
+        <p class="eyebrow">Disponibilidad académica</p>
+        <h2 id="availability-title">Avanza respetando los prerrequisitos</h2>
+        <p>
+          Las materias se desbloquean automáticamente. Si se desmarca un prerrequisito,
+          también se corrige el avance de las materias que dependan de él.
+        </p>
+      </div>
+      <ul class="status-legend" aria-label="Estados de las materias">
+        <li><span class="status-dot status-dot--available"></span>Disponible</li>
+        <li><span class="status-dot status-dot--completed"></span>Cursada</li>
+        <li><span class="status-dot status-dot--blocked"></span>Bloqueada</li>
+      </ul>
     </section>
 
     <section class="semester-list" aria-label="Materias por semestre">
@@ -142,6 +206,7 @@ function restablecerAvance() {
         :semestre="grupo.semestre"
         :materias="grupo.materias"
         :materias-cursadas="idsMateriasCursadas"
+        :estados-materias="estadosMaterias"
         @toggle-cursada="alternarMateriaCursada"
       />
     </section>
