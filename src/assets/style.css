@@ -135,6 +135,73 @@
   margin: 0 0 1.5rem;
 }
 
+.plan-selector {
+  display: grid;
+  gap: 0.85rem;
+  margin-bottom: 2rem;
+  padding: 1.25rem 1.5rem;
+  background: #ffffff;
+  border: 1px solid #dbe4ff;
+  border-radius: 1rem;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.04);
+}
+
+.plan-selector-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(220px, 0.7fr);
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.plan-selector-heading h2 {
+  margin: 0.35rem 0 0;
+  font-size: 1.2rem;
+}
+
+.plan-select-label,
+.plan-import label {
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.plan-selector select,
+.plan-import input {
+  min-height: 2.75rem;
+  padding: 0.55rem 0.7rem;
+  color: #1f2937;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.6rem;
+}
+
+.plan-selector select:focus-visible,
+.plan-import input:focus-visible {
+  outline: 3px solid rgb(79 70 229 / 0.25);
+  border-color: #4f46e5;
+}
+
+.plan-import {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.plan-format-hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.plan-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -332,6 +399,11 @@ h1 {
 .report-button:hover {
   background: #3730a3;
   border-color: #3730a3;
+}
+
+.report-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .report-button:focus-visible {
@@ -721,6 +793,16 @@ h1 {
 
   .session-button {
     width: 100%;
+  }
+
+  .plan-selector {
+    padding: 1.1rem;
+  }
+
+  .plan-selector-heading,
+  .plan-import {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   .semester-group {

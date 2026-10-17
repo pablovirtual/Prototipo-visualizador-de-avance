@@ -2,8 +2,8 @@
 import { computed, ref, watch } from 'vue'
 import SimulatedLogin from './components/SimulatedLogin.vue'
 import SemesterGroup from './components/SemesterGroup.vue'
+import StudyPlanSelector from './components/StudyPlanSelector.vue'
 import planEstudios from './data/plan_estudios.json'
-import { descargarReportePdf } from './utils/report.js'
 import {
   alternarMateriaCursada as calcularSiguienteAvance,
   calcularEstadosMaterias,
@@ -14,47 +14,95 @@ import {
   normalizarMateriasCursadas,
   validarPlanEstudios,
 } from './utils/curriculum.js'
+import { analizarPlanEstudios, crearIdPlanPersonalizado } from './utils/studyPlans.js'
 
 const STORAGE_KEY = 'avanceCurricular.materiasCursadas'
+const CUSTOM_PLANS_KEY = 'avanceCurricular.planesPersonalizados'
+const ACTIVE_PLAN_KEY = 'avanceCurricular.planActivo'
 const SESSION_KEY = 'avanceCurricular.sesionSimulada'
-const materias = planEstudios
-const indiceMaterias = crearIndiceMaterias(materias)
-const erroresPlan = validarPlanEstudios(materias)
+const DEFAULT_PLAN_ID = 'predeterminado'
 const usuarioActivo = ref(null)
 const errorSesion = ref('')
+const errorPlan = ref('')
+const importandoPlan = ref(false)
+const planesPersonalizados = ref([])
+const idPlanActivoInicial = ref(DEFAULT_PLAN_ID)
 
 try {
   usuarioActivo.value = localStorage.getItem(SESSION_KEY) || null
+  const planesGuardados = JSON.parse(localStorage.getItem(CUSTOM_PLANS_KEY) ?? '[]')
+  if (!Array.isArray(planesGuardados)) {
+    throw new TypeError('La lista de planes guardados no es válida.')
+  }
+
+  planesPersonalizados.value = planesGuardados.filter((plan) => {
+    return (
+      typeof plan?.id === 'string' &&
+      typeof plan?.name === 'string' &&
+      validarPlanEstudios(plan?.subjects).length === 0
+    )
+  })
+
+  const idGuardado = localStorage.getItem(ACTIVE_PLAN_KEY)
+  if (
+    idGuardado === DEFAULT_PLAN_ID ||
+    planesPersonalizados.value.some((plan) => plan.id === idGuardado)
+  ) {
+    idPlanActivoInicial.value = idGuardado
+  }
 } catch (error) {
-  console.error('No se pudo leer la sesión simulada:', error)
-  errorSesion.value = 'No se pudo acceder al almacenamiento del navegador. Actívalo para iniciar sesión.'
+  console.error('No se pudieron cargar las preferencias locales:', error)
+  errorSesion.value =
+    'No se pudieron leer los datos del navegador. Revisa su configuración de almacenamiento.'
+  errorPlan.value = errorSesion.value
 }
 
-if (erroresPlan.length > 0) {
-  console.error('El plan de estudios contiene errores:', erroresPlan)
+const planes = computed(() => [
+  { id: DEFAULT_PLAN_ID, name: 'Plan de estudios predeterminado', subjects: planEstudios },
+  ...planesPersonalizados.value,
+])
+const idPlanActivo = ref(idPlanActivoInicial.value)
+const planActivo = computed(
+  () => planes.value.find((plan) => plan.id === idPlanActivo.value) ?? planes.value[0],
+)
+const materias = computed(() => planActivo.value.subjects)
+const indiceMaterias = computed(() => crearIndiceMaterias(materias.value))
+
+function claveAvance(idPlan) {
+  return `${STORAGE_KEY}.${idPlan}`
 }
 
-function cargarMateriasCursadas() {
+function cargarMateriasCursadas(idPlan, plan) {
   try {
-    const datosGuardados = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')
+    const clave = claveAvance(idPlan)
+    const datos = localStorage.getItem(clave)
+    const datosGuardados = JSON.parse(
+      datos ?? (idPlan === DEFAULT_PLAN_ID ? localStorage.getItem(STORAGE_KEY) ?? '[]' : '[]'),
+    )
 
     if (!Array.isArray(datosGuardados)) {
       return []
     }
 
-    return normalizarMateriasCursadas(datosGuardados, materias)
-  } catch {
+    return normalizarMateriasCursadas(datosGuardados, plan)
+  } catch (error) {
+    console.error('No se pudo leer el avance guardado:', error)
+    errorPlan.value = 'No se pudo leer el avance de este plan desde el navegador.'
     return []
   }
 }
 
-const materiasCursadas = ref(cargarMateriasCursadas())
+const materiasCursadas = ref(
+  cargarMateriasCursadas(idPlanActivo.value, planActivo.value.subjects),
+)
 const mensajeEstado = ref('')
+const errorReporte = ref('')
+const generandoReporte = ref(false)
 const filtroActivo = ref('todas')
 const idsMateriasCursadas = computed(() => new Set(materiasCursadas.value))
 
 const materiasPorSemestre = computed(() => {
-  const grupos = materias.reduce((resultado, materia) => {
+  const grupos = materias.value.reduce((resultado, materia) => {
     if (!resultado[materia.semestre]) {
       resultado[materia.semestre] = []
     }
@@ -71,11 +119,15 @@ const materiasPorSemestre = computed(() => {
     }))
 })
 
-const estadisticas = computed(() => calcularEstadisticas(materias, idsMateriasCursadas.value))
-const estadosMaterias = computed(() =>
-  calcularEstadosMaterias(materias, idsMateriasCursadas.value),
+const estadisticas = computed(() =>
+  calcularEstadisticas(materias.value, idsMateriasCursadas.value),
 )
-const conteosEstado = computed(() => contarMateriasPorEstado(materias, estadosMaterias.value))
+const estadosMaterias = computed(() =>
+  calcularEstadosMaterias(materias.value, idsMateriasCursadas.value),
+)
+const conteosEstado = computed(() =>
+  contarMateriasPorEstado(materias.value, estadosMaterias.value),
+)
 
 const filtros = computed(() => [
   { id: 'todas', etiqueta: 'Todas', cantidad: conteosEstado.value.todas },
@@ -101,7 +153,9 @@ const etiquetaFiltroActivo = computed(
   () => filtros.value.find((filtro) => filtro.id === filtroActivo.value)?.etiqueta ?? 'Todas',
 )
 
-const cantidadFiltroActivo = computed(() => conteosEstado.value[filtroActivo.value] ?? materias.length)
+const cantidadFiltroActivo = computed(
+  () => conteosEstado.value[filtroActivo.value] ?? materias.value.length,
+)
 
 function iniciarSesion(correo) {
   try {
@@ -125,22 +179,86 @@ function cerrarSesion() {
   }
 }
 
-watch(materiasCursadas, (ids) => {
+watch([materiasCursadas, idPlanActivo], ([ids, idPlan]) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(ids))
-  } catch {
-    // El avance sigue disponible durante la sesión si el navegador bloquea localStorage.
+    localStorage.setItem(claveAvance(idPlan), JSON.stringify(ids))
+    localStorage.setItem(ACTIVE_PLAN_KEY, idPlan)
+  } catch (error) {
+    console.error('No se pudo guardar el avance del plan:', error)
+    errorPlan.value = 'No se pudo guardar el avance en este navegador.'
   }
 })
 
+function seleccionarPlan(idPlan) {
+  if (idPlan === idPlanActivo.value || !planes.value.some((plan) => plan.id === idPlan)) {
+    return
+  }
+
+  try {
+    localStorage.setItem(
+      claveAvance(idPlanActivo.value),
+      JSON.stringify(materiasCursadas.value),
+    )
+    errorPlan.value = ''
+    idPlanActivo.value = idPlan
+    materiasCursadas.value = cargarMateriasCursadas(idPlan, planActivo.value.subjects)
+    filtroActivo.value = 'todas'
+    mensajeEstado.value = `Se cambió a ${planActivo.value.name}.`
+  } catch (error) {
+    console.error('No se pudo cambiar de plan:', error)
+    errorPlan.value = 'No se pudo guardar el cambio de plan en este navegador.'
+  }
+}
+
+async function importarPlan(archivo) {
+  importandoPlan.value = true
+  errorPlan.value = ''
+
+  try {
+    const { plan, errores } = analizarPlanEstudios(await archivo.text())
+    if (!plan) {
+      throw new Error(`No se pudo cargar el plan: ${errores.join(' ')}`)
+    }
+
+    const id = await crearIdPlanPersonalizado(plan)
+    const nombre = archivo.name.replace(/\.json$/i, '').trim() || 'Plan personalizado'
+    const planesActualizados = [
+      ...planesPersonalizados.value.filter((planGuardado) => planGuardado.id !== id),
+      { id, name: nombre, subjects: plan },
+    ]
+    localStorage.setItem(
+      claveAvance(idPlanActivo.value),
+      JSON.stringify(materiasCursadas.value),
+    )
+    localStorage.setItem(CUSTOM_PLANS_KEY, JSON.stringify(planesActualizados))
+    planesPersonalizados.value = planesActualizados
+    idPlanActivo.value = id
+    materiasCursadas.value = cargarMateriasCursadas(id, plan)
+    filtroActivo.value = 'todas'
+    mensajeEstado.value = `Se cargó el plan ${nombre}.`
+  } catch (error) {
+    console.error('No se pudo importar el plan de estudios:', error)
+    errorPlan.value =
+      error instanceof Error
+        ? error.message
+        : 'No se pudo leer el archivo. Selecciona un JSON válido e inténtalo de nuevo.'
+  } finally {
+    importandoPlan.value = false
+  }
+}
+
 function alternarMateriaCursada(idMateria) {
-  if (!indiceMaterias.has(idMateria)) {
+  if (!indiceMaterias.value.has(idMateria)) {
     return
   }
 
   const estabaCursada = idsMateriasCursadas.value.has(idMateria)
   const cantidadAnterior = materiasCursadas.value.length
-  const siguienteEstado = calcularSiguienteAvance(idMateria, materiasCursadas.value, materias)
+  const siguienteEstado = calcularSiguienteAvance(
+    idMateria,
+    materiasCursadas.value,
+    materias.value,
+  )
 
   materiasCursadas.value = siguienteEstado
 
@@ -173,9 +291,19 @@ function seleccionarFiltro(filtro) {
   filtroActivo.value = filtro
 }
 
-function descargarReporte() {
-  descargarReportePdf(materias, materiasCursadas.value)
-  mensajeEstado.value = 'Se descargó el reporte PDF de tu avance curricular.'
+async function descargarReporte() {
+  generandoReporte.value = true
+  errorReporte.value = ''
+  try {
+    const { descargarReportePdf } = await import('./utils/report.js')
+    descargarReportePdf(materias.value, materiasCursadas.value)
+    mensajeEstado.value = 'Se descargó el reporte PDF de tu avance curricular.'
+  } catch (error) {
+    console.error('No se pudo generar el reporte PDF:', error)
+    errorReporte.value = 'No se pudo generar el reporte PDF. Inténtalo de nuevo.'
+  } finally {
+    generandoReporte.value = false
+  }
 }
 </script>
 
@@ -194,9 +322,17 @@ function descargarReporte() {
     <p class="session-notice" role="note">
       Login simulado: esta sesión no autentica ni protege información; los datos permanecen en este navegador.
     </p>
+    <StudyPlanSelector
+      :plans="planes"
+      :active-plan-id="idPlanActivo"
+      :error-message="errorPlan"
+      :is-importing="importandoPlan"
+      @select="seleccionarPlan"
+      @import="importarPlan"
+    />
     <header class="page-header">
       <p class="eyebrow">Plan de estudios</p>
-      <h1>Malla Curricular</h1>
+      <h1>{{ planActivo.name }}</h1>
       <p class="page-description">
         Consulta tu avance y descubre qué materias están disponibles según sus prerrequisitos.
       </p>
@@ -255,9 +391,15 @@ function descargarReporte() {
         </p>
       </div>
       <div class="report-actions">
-        <button class="report-button" type="button" @click="descargarReporte">
-          Descargar reporte PDF
+        <button
+          class="report-button"
+          type="button"
+          :disabled="generandoReporte"
+          @click="descargarReporte"
+        >
+          {{ generandoReporte ? 'Generando reporte…' : 'Descargar reporte PDF' }}
         </button>
+        <p v-if="errorReporte" class="login-error" role="alert">{{ errorReporte }}</p>
       </div>
     </section>
 

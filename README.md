@@ -24,6 +24,9 @@ El proyecto utiliza datos estáticos locales, por lo que no requiere backend ni 
 - Adapta la visualización a pantallas de escritorio y móviles.
 - Permite recorrer y activar los filtros mediante teclado, con estados anunciados para tecnologías de asistencia.
 - Permite descargar un reporte PDF con las estadísticas y materias cursadas.
+- Carga el generador PDF solo cuando se solicita la descarga, reduciendo el JavaScript inicial.
+- Permite importar y seleccionar varias mallas curriculares desde archivos JSON validados.
+- Conserva el progreso por separado para cada plan curricular en el navegador.
 - Incluye un inicio de sesión simulado que conserva la sesión en el navegador y permite cerrarla.
 
 ## Incremento del Sprint 4
@@ -53,6 +56,16 @@ El quinto sprint incorpora evidencia académica descargable y validación de la 
 
 La aplicación conserva la selección mediante `localStorage`; el reporte funciona como
 evidencia portable del estado registrado en el navegador.
+
+## Incremento del Sprint 6
+
+Este incremento agrega carga diferida del reporte y soporte para planes curriculares personalizados:
+
+- El módulo del reporte PDF, junto con `jsPDF`, se importa de forma dinámica al solicitar la descarga.
+- Se pueden importar archivos JSON con arreglos de materias; los datos se validan antes de activar el plan.
+- Los planes importados quedan disponibles después de recargar el navegador.
+- Cada plan tiene un identificador derivado de su contenido y almacena sus materias cursadas con una clave propia.
+- Los planes y su avance se guardan en `localStorage`; no se sincronizan entre navegadores ni dispositivos.
 
 ## Ejecución local
 
@@ -109,11 +122,14 @@ https://pablovirtual.github.io/Prototipo-visualizador-de-avance/
 src/
   assets/style.css              Estilos globales de la aplicación
   components/SimulatedLogin.vue Acceso simulado para la demostración
+  components/StudyPlanSelector.vue Selección e importación de planes curriculares
   components/SemesterGroup.vue  Sección visual de cada semestre
   components/SubjectCard.vue    Tarjeta visual de una materia
   data/plan_estudios.json       Datos locales de la malla curricular
   utils/curriculum.js           Reglas de prerrequisitos, avance, filtros y estadísticas
-  App.vue                       Controla la sesión y compone la vista principal
+  utils/studyPlans.js           Validación de JSON e identificación de planes personalizados
+  utils/report.js               Generación del reporte PDF, cargado bajo demanda
+  App.vue                       Controla sesión, planes y vista principal
   main.js                       Punto de entrada de Vue
 tests/
   curriculum.test.js            Pruebas automatizadas de reglas, filtros y estadísticas
@@ -140,12 +156,23 @@ El campo `prerrequisitos` almacena IDs de otras materias. Una materia se present
 disponible cuando todos esos IDs aparecen entre las materias cursadas. Las referencias
 inexistentes se detectan mediante la validación y no desbloquean una asignatura.
 
+También se pueden cargar otros planes mediante el selector de la aplicación. El archivo debe
+ser un arreglo JSON con registros que contengan `id`, `nombre`, `semestre`, `creditos` y
+`prerrequisitos`. La aplicación rechaza JSON mal formado, planes vacíos, materias incompletas,
+IDs duplicados y prerrequisitos que no existan en ese plan. Solo activa y conserva los datos
+cuando todas las validaciones pasan.
+
 ## Persistencia del avance
 
-Las materias cursadas se guardan en el navegador con la clave
-`avanceCurricular.materiasCursadas`. El valor es un arreglo JSON con los IDs de las
-materias seleccionadas. La información es local al navegador y no se sincroniza entre
-dispositivos.
+Las materias cursadas se guardan en el navegador con una clave específica por plan,
+`avanceCurricular.materiasCursadas.<id-del-plan>`. El valor es un arreglo JSON con los IDs
+seleccionados. El plan activo y los archivos importados también se guardan en `localStorage`.
+El avance existente bajo `avanceCurricular.materiasCursadas` se conserva como compatibilidad
+del plan predeterminado y se migra a su clave específica cuando se guarda de nuevo.
+
+El identificador de cada plan importado se obtiene mediante SHA-256 sobre sus materias, de
+modo que volver a cargar el mismo plan recupera el avance asociado. La información permanece
+en el navegador y no se sincroniza entre dispositivos.
 
 Al cargar la aplicación, los datos guardados se normalizan para eliminar IDs inexistentes
 y selecciones que no cumplan la cadena de prerrequisitos. Esto mantiene el avance en un

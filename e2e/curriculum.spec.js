@@ -62,8 +62,24 @@ test('descarga un reporte PDF del avance registrado', async ({ page }) => {
     .getByRole('checkbox', { name: 'Marcar Fundamentos de Programación como cursada' })
     .check()
 
+  const modulosPdfAntes = await page.evaluate(() =>
+    performance
+      .getEntriesByType('resource')
+      .map((recurso) => recurso.name)
+      .filter((nombre) =>
+        /\/assets\/(report|html2canvas|purify|index\.es)-[^/]+\.js/.test(
+          new URL(nombre).pathname,
+        ),
+      ),
+  )
+  expect(modulosPdfAntes).toHaveLength(0)
+
+  const moduloPdfPendiente = page.waitForResponse((respuesta) =>
+    /\/assets\/report-[^/]+\.js/.test(new URL(respuesta.url()).pathname),
+  )
   const descargaPendiente = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Descargar reporte PDF' }).click()
+  await moduloPdfPendiente
   const descarga = await descargaPendiente
 
   expect(descarga.suggestedFilename()).toBe('reporte-avance-curricular.pdf')
@@ -76,4 +92,58 @@ test('descarga un reporte PDF del avance registrado', async ({ page }) => {
   const contenido = await readFile(rutaReporte)
   expect(contenido.subarray(0, 5).toString()).toBe('%PDF-')
   expect(contenido.length).toBeGreaterThan(1000)
+})
+
+test('importa planes JSON y conserva el avance aislado por plan', async ({ page }) => {
+  const plan = [
+    {
+      id: 'ALT101',
+      nombre: 'Álgebra alternativa',
+      semestre: 1,
+      creditos: 2,
+      prerrequisitos: [],
+    },
+    {
+      id: 'ALT201',
+      nombre: 'Cálculo alternativo',
+      semestre: 2,
+      creditos: 3,
+      prerrequisitos: ['ALT101'],
+    },
+  ]
+
+  await page.getByLabel('Cargar otro plan (.json)').setInputFiles({
+    name: 'Plan alternativo.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(plan)),
+  })
+  await expect(page.getByRole('heading', { name: 'Plan alternativo' })).toBeVisible()
+  await expect(page.getByText('0% completado')).toBeVisible()
+  await page.getByRole('checkbox', { name: 'Marcar Álgebra alternativa como cursada' }).check()
+  await expect(page.getByText('50% completado')).toBeVisible()
+
+  await page.getByLabel('Plan activo').selectOption('predeterminado')
+  await expect(page.getByRole('heading', { name: 'Plan de estudios predeterminado' })).toBeVisible()
+  await expect(page.getByText('0% completado')).toBeVisible()
+  await page.getByLabel('Plan activo').selectOption({ label: 'Plan alternativo' })
+  await expect(page.getByText('50% completado')).toBeVisible()
+  await expect(
+    page.getByRole('checkbox', { name: 'Desmarcar Álgebra alternativa como cursada' }),
+  ).toBeChecked()
+
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Plan alternativo' })).toBeVisible()
+  await expect(page.getByText('50% completado')).toBeVisible()
+})
+
+test('rechaza planes JSON inválidos sin cambiar la malla seleccionada', async ({ page }) => {
+  await page.getByLabel('Cargar otro plan (.json)').setInputFiles({
+    name: 'plan-invalido.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify([{ id: 'X', nombre: 'Inválida' }])),
+  })
+
+  await expect(page.getByRole('alert')).toContainText('semestre inválido')
+  await expect(page.getByRole('heading', { name: 'Plan de estudios predeterminado' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cálculo Diferencial' })).toBeVisible()
 })

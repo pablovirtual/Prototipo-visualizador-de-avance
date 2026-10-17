@@ -14,6 +14,7 @@ import {
   obtenerPrerrequisitosPendientes,
   validarPlanEstudios,
 } from '../src/utils/curriculum.js'
+import { analizarPlanEstudios, crearIdPlanPersonalizado } from '../src/utils/studyPlans.js'
 
 const materias = [
   { id: 'A', nombre: 'Inicial', semestre: 1, creditos: 4, prerrequisitos: [] },
@@ -119,4 +120,33 @@ test('actualiza los contadores de estado cuando cambia el avance', () => {
     disponibles: 1,
     bloqueadas: 0,
   })
+})
+
+test('valida los planes JSON y rechaza materias con campos o prerrequisitos inválidos', () => {
+  const planJson = JSON.stringify(materias)
+  const resultado = analizarPlanEstudios(planJson)
+
+  assert.deepEqual(resultado.plan, materias)
+  assert.deepEqual(resultado.errores, [])
+  assert.deepEqual(analizarPlanEstudios('{ JSON inválido }'), {
+    plan: null,
+    errores: ['El archivo no contiene JSON válido.'],
+  })
+  assert.equal(analizarPlanEstudios('[]').plan, null)
+  assert.equal(
+    analizarPlanEstudios(JSON.stringify([{ ...materias[0], prerrequisitos: ['X'] }])).plan,
+    null,
+  )
+})
+
+test('genera un identificador estable y distinto para cada plan personalizado', async () => {
+  const idOriginal = await crearIdPlanPersonalizado(materias)
+  const idRepetido = await crearIdPlanPersonalizado(materias)
+  const idModificado = await crearIdPlanPersonalizado([
+    ...materias,
+    { id: 'D', nombre: 'Otra materia', semestre: 4, creditos: 1, prerrequisitos: [] },
+  ])
+
+  assert.equal(idOriginal, idRepetido)
+  assert.notEqual(idOriginal, idModificado)
 })
