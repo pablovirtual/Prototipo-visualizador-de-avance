@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import SemesterGroup from './components/SemesterGroup.vue'
 import planEstudios from './data/plan_estudios.json'
+import { descargarReportePdf } from './utils/report.js'
 import {
   alternarMateriaCursada as calcularSiguienteAvance,
   calcularEstadosMaterias,
@@ -138,6 +139,11 @@ function restablecerAvance() {
 function seleccionarFiltro(filtro) {
   filtroActivo.value = filtro
 }
+
+function descargarReporte() {
+  descargarReportePdf(materias, materiasCursadas.value)
+  mensajeEstado.value = 'Se descargó el reporte PDF de tu avance curricular.'
+}
 </script>
 
 <template>
@@ -191,6 +197,22 @@ function seleccionarFiltro(filtro) {
       <p v-if="mensajeEstado" class="progress-feedback" aria-live="polite">
         {{ mensajeEstado }}
       </p>
+    </section>
+
+    <section class="report-panel" aria-labelledby="report-title">
+      <div>
+        <p class="eyebrow">Evidencia académica</p>
+        <h2 id="report-title">Descarga tu reporte de avance</h2>
+        <p>
+          Genera un archivo PDF con el porcentaje, las materias y los créditos completados,
+          además del detalle de las asignaturas cursadas.
+        </p>
+      </div>
+      <div class="report-actions">
+        <button class="report-button" type="button" @click="descargarReporte">
+          Descargar reporte PDF
+        </button>
+      </div>
     </section>
 
     <section class="availability-guide" aria-labelledby="availability-title">

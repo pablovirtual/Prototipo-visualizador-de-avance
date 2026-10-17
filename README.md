@@ -23,6 +23,7 @@ El proyecto utiliza datos estáticos locales, por lo que no requiere backend ni 
 - Valida las referencias del plan de estudios y tolera datos persistidos inconsistentes.
 - Adapta la visualización a pantallas de escritorio y móviles.
 - Permite recorrer y activar los filtros mediante teclado, con estados anunciados para tecnologías de asistencia.
+- Permite descargar un reporte PDF con las estadísticas y materias cursadas.
 
 ## Incremento del Sprint 4
 
@@ -40,6 +41,17 @@ reglas de prerrequisitos.
 - Vue 3 con Composition API y `<script setup>`.
 - Vite.
 - CSS puro.
+
+## Incremento del Sprint 5
+
+El quinto sprint incorpora evidencia académica descargable y validación de la experiencia completa:
+
+- **HU-12:** descargar un reporte del avance curricular en formato PDF.
+- **HU-13:** consultar en el reporte el porcentaje, las materias, los créditos y el detalle de asignaturas cursadas.
+- **HU-14:** validar con Playwright la persistencia, los filtros y la descarga en un navegador real.
+
+La aplicación conserva la selección mediante `localStorage`; el reporte funciona como
+evidencia portable del estado registrado en el navegador.
 
 ## Ejecución local
 
@@ -65,6 +77,13 @@ Ejecuta las pruebas automatizadas de reglas curriculares:
 
 ```bash
 npm test
+```
+
+Instala Chromium para Playwright y ejecuta las pruebas de extremo a extremo:
+
+```bash
+npx playwright install chromium
+npm run test:e2e
 ```
 
 Previsualiza la compilación de producción:
@@ -96,6 +115,9 @@ src/
   main.js                       Punto de entrada de Vue
 tests/
   curriculum.test.js            Pruebas automatizadas de reglas, filtros y estadísticas
+  report.test.js                Pruebas de contenido y generación del reporte PDF
+e2e/
+  curriculum.spec.js            Pruebas E2E de persistencia, filtros y descarga
 ```
 
 ## Datos curriculares
@@ -126,3 +148,9 @@ dispositivos.
 Al cargar la aplicación, los datos guardados se normalizan para eliminar IDs inexistentes
 y selecciones que no cumplan la cadena de prerrequisitos. Esto mantiene el avance en un
 estado académico coherente.
+
+## Reporte del avance
+
+La opción **Descargar reporte PDF** genera `reporte-avance-curricular.pdf`. El documento
+incluye la fecha de generación, porcentaje de avance, materias y créditos completados,
+así como el detalle de cada asignatura cursada.
