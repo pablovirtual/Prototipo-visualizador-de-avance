@@ -34,7 +34,9 @@ function alternarMateria(idMateria) {
         <p class="semester-label">Ciclo académico</p>
         <h2 :id="`semestre-${semestre}`">Semestre {{ semestre }}</h2>
       </div>
-      <span class="subject-count">{{ materias.length }} materias</span>
+      <span class="subject-count">
+        {{ materias.length }} {{ materias.length === 1 ? 'materia' : 'materias' }}
+      </span>
     </div>
 
     <div class="subject-grid">

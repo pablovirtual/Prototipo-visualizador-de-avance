@@ -15,10 +15,25 @@ El proyecto utiliza datos estáticos locales, por lo que no requiere backend ni 
 - Permite restablecer el avance guardado con confirmación previa.
 - Desbloquea automáticamente las materias cuando se cumplen todos sus prerrequisitos.
 - Distingue visualmente materias disponibles, cursadas y bloqueadas.
+- Filtra la malla para mostrar todas las materias o solamente las cursadas, disponibles o bloqueadas.
+- Actualiza los contadores de cada filtro al cambiar el avance curricular.
+- Presenta un estado vacío con una acción de recuperación cuando un filtro no tiene resultados.
 - Explica qué materias faltan cuando una asignatura permanece bloqueada.
 - Corrige de forma encadenada las materias dependientes al desmarcar un prerrequisito.
 - Valida las referencias del plan de estudios y tolera datos persistidos inconsistentes.
 - Adapta la visualización a pantallas de escritorio y móviles.
+- Permite recorrer y activar los filtros mediante teclado, con estados anunciados para tecnologías de asistencia.
+
+## Incremento del Sprint 4
+
+El cuarto sprint incorporó la exploración de la malla por estado académico:
+
+- **HU-09:** filtrar materias cursadas, disponibles y bloqueadas.
+- **HU-10:** consultar contadores que responden al avance registrado.
+- **HU-11:** recibir una respuesta accesible cuando un filtro no contiene resultados.
+
+Los filtros son únicamente una forma de visualización. No modifican el avance guardado ni las
+reglas de prerrequisitos.
 
 ## Tecnologías
 
@@ -76,11 +91,11 @@ src/
   components/SemesterGroup.vue  Sección visual de cada semestre
   components/SubjectCard.vue    Tarjeta visual de una materia
   data/plan_estudios.json       Datos locales de la malla curricular
-  utils/curriculum.js           Reglas de prerrequisitos, avance y estadísticas
+  utils/curriculum.js           Reglas de prerrequisitos, avance, filtros y estadísticas
   App.vue                       Agrupa las materias y compone la vista principal
   main.js                       Punto de entrada de Vue
 tests/
-  curriculum.test.js            Pruebas automatizadas de las reglas curriculares
+  curriculum.test.js            Pruebas automatizadas de reglas, filtros y estadísticas
 ```
 
 ## Datos curriculares

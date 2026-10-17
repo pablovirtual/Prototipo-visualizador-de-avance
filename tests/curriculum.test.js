@@ -4,9 +4,12 @@ import test from 'node:test'
 
 import {
   alternarMateriaCursada,
+  calcularEstadosMaterias,
   calcularEstadisticas,
+  contarMateriasPorEstado,
   crearIndiceMaterias,
   estaMateriaDisponible,
+  filtrarMateriasPorEstado,
   normalizarMateriasCursadas,
   obtenerPrerrequisitosPendientes,
   validarPlanEstudios,
@@ -67,5 +70,53 @@ test('calcula las estadísticas académicas', () => {
     creditosCompletados: 7,
     totalCreditos: 9,
     porcentaje: 67,
+  })
+})
+
+test('clasifica materias cursadas, disponibles y bloqueadas', () => {
+  const estados = calcularEstadosMaterias(materias, new Set(['A']))
+
+  assert.deepEqual(estados.get('A'), {
+    cursada: true,
+    disponible: true,
+    prerrequisitosPendientes: [],
+  })
+  assert.deepEqual(estados.get('B'), {
+    cursada: false,
+    disponible: true,
+    prerrequisitosPendientes: [],
+  })
+  assert.deepEqual(estados.get('C'), {
+    cursada: false,
+    disponible: false,
+    prerrequisitosPendientes: [materias[1]],
+  })
+})
+
+test('filtra las materias por cada estado sin alterar el arreglo original', () => {
+  const estados = calcularEstadosMaterias(materias, new Set(['A']))
+
+  assert.deepEqual(filtrarMateriasPorEstado(materias, estados, 'todas'), materias)
+  assert.deepEqual(filtrarMateriasPorEstado(materias, estados, 'cursadas'), [materias[0]])
+  assert.deepEqual(filtrarMateriasPorEstado(materias, estados, 'disponibles'), [materias[1]])
+  assert.deepEqual(filtrarMateriasPorEstado(materias, estados, 'bloqueadas'), [materias[2]])
+  assert.equal(materias.length, 3)
+})
+
+test('actualiza los contadores de estado cuando cambia el avance', () => {
+  const estadosIniciales = calcularEstadosMaterias(materias, new Set())
+  const estadosConAvance = calcularEstadosMaterias(materias, new Set(['A', 'B']))
+
+  assert.deepEqual(contarMateriasPorEstado(materias, estadosIniciales), {
+    todas: 3,
+    cursadas: 0,
+    disponibles: 1,
+    bloqueadas: 2,
+  })
+  assert.deepEqual(contarMateriasPorEstado(materias, estadosConAvance), {
+    todas: 3,
+    cursadas: 2,
+    disponibles: 1,
+    bloqueadas: 0,
   })
 })

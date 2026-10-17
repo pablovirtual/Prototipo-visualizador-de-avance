@@ -70,6 +70,56 @@ export function estaMateriaDisponible(materia, idsCursados, indiceMaterias) {
   return obtenerPrerrequisitosPendientes(materia, idsCursados, indiceMaterias).length === 0
 }
 
+export function calcularEstadosMaterias(materias, idsCursados) {
+  const indiceMaterias = crearIndiceMaterias(materias)
+  const estados = new Map()
+
+  for (const materia of materias) {
+    const cursada = idsCursados.has(materia.id)
+    const prerrequisitosPendientes = obtenerPrerrequisitosPendientes(
+      materia,
+      idsCursados,
+      indiceMaterias,
+    )
+
+    estados.set(materia.id, {
+      cursada,
+      disponible: cursada || prerrequisitosPendientes.length === 0,
+      prerrequisitosPendientes,
+    })
+  }
+
+  return estados
+}
+
+export function filtrarMateriasPorEstado(materias, estadosMaterias, filtro = 'todas') {
+  if (filtro === 'cursadas') {
+    return materias.filter((materia) => estadosMaterias.get(materia.id)?.cursada)
+  }
+
+  if (filtro === 'disponibles') {
+    return materias.filter((materia) => {
+      const estado = estadosMaterias.get(materia.id)
+      return estado?.disponible && !estado.cursada
+    })
+  }
+
+  if (filtro === 'bloqueadas') {
+    return materias.filter((materia) => !estadosMaterias.get(materia.id)?.disponible)
+  }
+
+  return materias
+}
+
+export function contarMateriasPorEstado(materias, estadosMaterias) {
+  return {
+    todas: materias.length,
+    cursadas: filtrarMateriasPorEstado(materias, estadosMaterias, 'cursadas').length,
+    disponibles: filtrarMateriasPorEstado(materias, estadosMaterias, 'disponibles').length,
+    bloqueadas: filtrarMateriasPorEstado(materias, estadosMaterias, 'bloqueadas').length,
+  }
+}
+
 export function normalizarMateriasCursadas(ids, materias) {
   if (!Array.isArray(ids)) {
     return []

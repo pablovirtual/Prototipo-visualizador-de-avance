@@ -4,10 +4,12 @@ import SemesterGroup from './components/SemesterGroup.vue'
 import planEstudios from './data/plan_estudios.json'
 import {
   alternarMateriaCursada as calcularSiguienteAvance,
+  calcularEstadosMaterias,
   calcularEstadisticas,
+  contarMateriasPorEstado,
   crearIndiceMaterias,
+  filtrarMateriasPorEstado,
   normalizarMateriasCursadas,
-  obtenerPrerrequisitosPendientes,
   validarPlanEstudios,
 } from './utils/curriculum.js'
 
@@ -36,6 +38,7 @@ function cargarMateriasCursadas() {
 
 const materiasCursadas = ref(cargarMateriasCursadas())
 const mensajeEstado = ref('')
+const filtroActivo = ref('todas')
 const idsMateriasCursadas = computed(() => new Set(materiasCursadas.value))
 
 const materiasPorSemestre = computed(() => {
@@ -57,33 +60,36 @@ const materiasPorSemestre = computed(() => {
 })
 
 const estadisticas = computed(() => calcularEstadisticas(materias, idsMateriasCursadas.value))
-
-const estadosMaterias = computed(() => {
-  const estados = new Map()
-
-  for (const materia of materias) {
-    const cursada = idsMateriasCursadas.value.has(materia.id)
-    const prerrequisitosPendientes = obtenerPrerrequisitosPendientes(
-      materia,
-      idsMateriasCursadas.value,
-      indiceMaterias,
-    )
-
-    estados.set(materia.id, {
-      cursada,
-      disponible: cursada || prerrequisitosPendientes.length === 0,
-      prerrequisitosPendientes,
-    })
-  }
-
-  return estados
-})
-
-const materiasDisponibles = computed(
-  () =>
-    [...estadosMaterias.value.values()].filter((estado) => estado.disponible && !estado.cursada)
-      .length,
+const estadosMaterias = computed(() =>
+  calcularEstadosMaterias(materias, idsMateriasCursadas.value),
 )
+const conteosEstado = computed(() => contarMateriasPorEstado(materias, estadosMaterias.value))
+
+const filtros = computed(() => [
+  { id: 'todas', etiqueta: 'Todas', cantidad: conteosEstado.value.todas },
+  { id: 'cursadas', etiqueta: 'Cursadas', cantidad: conteosEstado.value.cursadas },
+  { id: 'disponibles', etiqueta: 'Disponibles', cantidad: conteosEstado.value.disponibles },
+  { id: 'bloqueadas', etiqueta: 'Bloqueadas', cantidad: conteosEstado.value.bloqueadas },
+])
+
+const materiasFiltradasPorSemestre = computed(() =>
+  materiasPorSemestre.value
+    .map((grupo) => ({
+      ...grupo,
+      materias: filtrarMateriasPorEstado(
+        grupo.materias,
+        estadosMaterias.value,
+        filtroActivo.value,
+      ),
+    }))
+    .filter((grupo) => grupo.materias.length > 0),
+)
+
+const etiquetaFiltroActivo = computed(
+  () => filtros.value.find((filtro) => filtro.id === filtroActivo.value)?.etiqueta ?? 'Todas',
+)
+
+const cantidadFiltroActivo = computed(() => conteosEstado.value[filtroActivo.value] ?? materias.length)
 
 watch(materiasCursadas, (ids) => {
   try {
@@ -127,6 +133,10 @@ function restablecerAvance() {
     materiasCursadas.value = []
     mensajeEstado.value = 'Se restableció todo el avance curricular.'
   }
+}
+
+function seleccionarFiltro(filtro) {
+  filtroActivo.value = filtro
 }
 </script>
 
@@ -176,7 +186,7 @@ function restablecerAvance() {
           <strong>{{ estadisticas.creditosCompletados }}</strong> de
           {{ estadisticas.totalCreditos }} créditos
         </p>
-        <p><strong>{{ materiasDisponibles }}</strong> disponibles para cursar</p>
+        <p><strong>{{ conteosEstado.disponibles }}</strong> disponibles para cursar</p>
       </div>
       <p v-if="mensajeEstado" class="progress-feedback" aria-live="polite">
         {{ mensajeEstado }}
@@ -199,9 +209,41 @@ function restablecerAvance() {
       </ul>
     </section>
 
+    <section class="filter-panel" aria-labelledby="filter-title">
+      <div class="filter-heading">
+        <div>
+          <p class="eyebrow">Explorar la malla</p>
+          <h2 id="filter-title">Filtrar materias por estado</h2>
+        </div>
+        <p class="filter-result" aria-live="polite">
+          {{ cantidadFiltroActivo }}
+          {{ cantidadFiltroActivo === 1 ? 'materia' : 'materias' }}:
+          {{ etiquetaFiltroActivo.toLowerCase() }}
+        </p>
+      </div>
+
+      <div class="filter-controls" role="group" aria-label="Filtrar materias por estado">
+        <button
+          v-for="filtro in filtros"
+          :key="filtro.id"
+          class="filter-button"
+          :class="{ 'filter-button--active': filtroActivo === filtro.id }"
+          type="button"
+          :aria-pressed="filtroActivo === filtro.id"
+          @click="seleccionarFiltro(filtro.id)"
+        >
+          <span>{{ filtro.etiqueta }}</span>
+          <span class="filter-count" aria-hidden="true">{{ filtro.cantidad }}</span>
+          <span class="sr-only">
+            : {{ filtro.cantidad }} {{ filtro.cantidad === 1 ? 'materia' : 'materias' }}
+          </span>
+        </button>
+      </div>
+    </section>
+
     <section class="semester-list" aria-label="Materias por semestre">
       <SemesterGroup
-        v-for="grupo in materiasPorSemestre"
+        v-for="grupo in materiasFiltradasPorSemestre"
         :key="grupo.semestre"
         :semestre="grupo.semestre"
         :materias="grupo.materias"
@@ -209,6 +251,15 @@ function restablecerAvance() {
         :estados-materias="estadosMaterias"
         @toggle-cursada="alternarMateriaCursada"
       />
+
+      <div v-if="materiasFiltradasPorSemestre.length === 0" class="empty-state" role="status">
+        <p class="empty-state-icon" aria-hidden="true">✓</p>
+        <h2>No hay materias {{ etiquetaFiltroActivo.toLowerCase() }}</h2>
+        <p>Selecciona otro filtro para continuar explorando la malla curricular.</p>
+        <button class="empty-state-button" type="button" @click="seleccionarFiltro('todas')">
+          Mostrar todas las materias
+        </button>
+      </div>
     </section>
   </main>
 </template>
