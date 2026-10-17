@@ -67,7 +67,7 @@ test('descarga un reporte PDF del avance registrado', async ({ page }) => {
       .getEntriesByType('resource')
       .map((recurso) => recurso.name)
       .filter((nombre) =>
-        /\/assets\/(report|html2canvas|purify|index\.es)-[^/]+\.js/.test(
+        /\/(assets\/(report|html2canvas|purify|index\.es)-[^/]+\.js|src\/utils\/report\.js)/.test(
           new URL(nombre).pathname,
         ),
       ),
@@ -75,7 +75,9 @@ test('descarga un reporte PDF del avance registrado', async ({ page }) => {
   expect(modulosPdfAntes).toHaveLength(0)
 
   const moduloPdfPendiente = page.waitForResponse((respuesta) =>
-    /\/assets\/report-[^/]+\.js/.test(new URL(respuesta.url()).pathname),
+    /\/(assets\/report-[^/]+\.js|src\/utils\/report\.js)/.test(
+      new URL(respuesta.url()).pathname,
+    ),
   )
   const descargaPendiente = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Descargar reporte PDF' }).click()
