@@ -6,6 +6,32 @@ test.beforeEach(async ({ page }) => {
   await page.goto('./')
   await page.evaluate(() => localStorage.clear())
   await page.reload()
+  await page.getByLabel('Correo electrónico').fill('estudiante@example.com')
+  await page.getByLabel('Contraseña').fill('demo')
+  await page.getByRole('button', { name: 'Entrar al prototipo' }).click()
+})
+
+test('mantiene la sesión simulada al recargar sin guardar la contraseña', async ({ page }) => {
+  await expect(page.getByText('Sesión de demostración: estudiante@example.com')).toBeVisible()
+  await page.reload()
+
+  await expect(page.getByText('Sesión de demostración: estudiante@example.com')).toBeVisible()
+  expect(
+    await page.evaluate(() => localStorage.getItem('avanceCurricular.sesionSimulada')),
+  ).toBe('estudiante@example.com')
+  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([
+    'avanceCurricular.sesionSimulada',
+  ])
+})
+
+test('cierra la sesión simulada y vuelve a mostrar el formulario', async ({ page }) => {
+  await page.getByRole('button', { name: 'Cerrar sesión' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Inicia sesión' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Malla Curricular' })).toHaveCount(0)
+  expect(
+    await page.evaluate(() => localStorage.getItem('avanceCurricular.sesionSimulada')),
+  ).toBeNull()
 })
 
 test('conserva el avance después de recargar la aplicación', async ({ page }) => {

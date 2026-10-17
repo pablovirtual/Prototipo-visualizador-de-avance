@@ -24,6 +24,7 @@ El proyecto utiliza datos estáticos locales, por lo que no requiere backend ni 
 - Adapta la visualización a pantallas de escritorio y móviles.
 - Permite recorrer y activar los filtros mediante teclado, con estados anunciados para tecnologías de asistencia.
 - Permite descargar un reporte PDF con las estadísticas y materias cursadas.
+- Incluye un inicio de sesión simulado que conserva la sesión en el navegador y permite cerrarla.
 
 ## Incremento del Sprint 4
 
@@ -48,7 +49,7 @@ El quinto sprint incorpora evidencia académica descargable y validación de la 
 
 - **HU-12:** descargar un reporte del avance curricular en formato PDF.
 - **HU-13:** consultar en el reporte el porcentaje, las materias, los créditos y el detalle de asignaturas cursadas.
-- **HU-14:** validar con Playwright la persistencia, los filtros y la descarga en un navegador real.
+- **HU-14:** validar con Playwright el acceso simulado, la persistencia, los filtros y la descarga en un navegador real.
 
 La aplicación conserva la selección mediante `localStorage`; el reporte funciona como
 evidencia portable del estado registrado en el navegador.
@@ -107,11 +108,12 @@ https://pablovirtual.github.io/Prototipo-visualizador-de-avance/
 ```text
 src/
   assets/style.css              Estilos globales de la aplicación
+  components/SimulatedLogin.vue Acceso simulado para la demostración
   components/SemesterGroup.vue  Sección visual de cada semestre
   components/SubjectCard.vue    Tarjeta visual de una materia
   data/plan_estudios.json       Datos locales de la malla curricular
   utils/curriculum.js           Reglas de prerrequisitos, avance, filtros y estadísticas
-  App.vue                       Agrupa las materias y compone la vista principal
+  App.vue                       Controla la sesión y compone la vista principal
   main.js                       Punto de entrada de Vue
 tests/
   curriculum.test.js            Pruebas automatizadas de reglas, filtros y estadísticas
@@ -148,6 +150,17 @@ dispositivos.
 Al cargar la aplicación, los datos guardados se normalizan para eliminar IDs inexistentes
 y selecciones que no cumplan la cadena de prerrequisitos. Esto mantiene el avance en un
 estado académico coherente.
+
+## Login simulado
+
+La pantalla de acceso es únicamente una demostración visual: acepta cualquier correo válido y
+una contraseña no vacía, sin verificar credenciales ni autenticar usuarios. Guarda solo el
+correo para recordar la sesión en `localStorage` (`avanceCurricular.sesionSimulada`); la
+contraseña no se almacena. Cerrar sesión elimina ese valor del navegador.
+
+Este login no protege información ni sustituye la autenticación real. Tanto la sesión como el
+avance se almacenan localmente y pueden ser consultados o modificados desde el navegador; no
+hay backend ni sincronización entre dispositivos.
 
 ## Reporte del avance
 

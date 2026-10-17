@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import SimulatedLogin from './components/SimulatedLogin.vue'
 import SemesterGroup from './components/SemesterGroup.vue'
 import planEstudios from './data/plan_estudios.json'
 import { descargarReportePdf } from './utils/report.js'
@@ -15,9 +16,19 @@ import {
 } from './utils/curriculum.js'
 
 const STORAGE_KEY = 'avanceCurricular.materiasCursadas'
+const SESSION_KEY = 'avanceCurricular.sesionSimulada'
 const materias = planEstudios
 const indiceMaterias = crearIndiceMaterias(materias)
 const erroresPlan = validarPlanEstudios(materias)
+const usuarioActivo = ref(null)
+const errorSesion = ref('')
+
+try {
+  usuarioActivo.value = localStorage.getItem(SESSION_KEY) || null
+} catch (error) {
+  console.error('No se pudo leer la sesión simulada:', error)
+  errorSesion.value = 'No se pudo acceder al almacenamiento del navegador. Actívalo para iniciar sesión.'
+}
 
 if (erroresPlan.length > 0) {
   console.error('El plan de estudios contiene errores:', erroresPlan)
@@ -92,6 +103,28 @@ const etiquetaFiltroActivo = computed(
 
 const cantidadFiltroActivo = computed(() => conteosEstado.value[filtroActivo.value] ?? materias.length)
 
+function iniciarSesion(correo) {
+  try {
+    localStorage.setItem(SESSION_KEY, correo)
+    usuarioActivo.value = correo
+    errorSesion.value = ''
+  } catch (error) {
+    console.error('No se pudo guardar la sesión simulada:', error)
+    errorSesion.value = 'No se pudo guardar la sesión en este navegador. Revisa su configuración de almacenamiento.'
+  }
+}
+
+function cerrarSesion() {
+  try {
+    localStorage.removeItem(SESSION_KEY)
+    usuarioActivo.value = null
+    errorSesion.value = ''
+  } catch (error) {
+    console.error('No se pudo cerrar la sesión simulada:', error)
+    errorSesion.value = 'No se pudo borrar la sesión del navegador. Inténtalo de nuevo.'
+  }
+}
+
 watch(materiasCursadas, (ids) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ids))
@@ -148,6 +181,19 @@ function descargarReporte() {
 
 <template>
   <main class="curriculum-page">
+    <SimulatedLogin
+      v-if="!usuarioActivo"
+      :error-message="errorSesion"
+      @login="iniciarSesion"
+    />
+    <template v-else>
+    <div class="session-bar">
+      <p>Sesión de demostración: <strong>{{ usuarioActivo }}</strong></p>
+      <button class="session-button" type="button" @click="cerrarSesion">Cerrar sesión</button>
+    </div>
+    <p class="session-notice" role="note">
+      Login simulado: esta sesión no autentica ni protege información; los datos permanecen en este navegador.
+    </p>
     <header class="page-header">
       <p class="eyebrow">Plan de estudios</p>
       <h1>Malla Curricular</h1>
@@ -283,5 +329,6 @@ function descargarReporte() {
         </button>
       </div>
     </section>
+    </template>
   </main>
 </template>

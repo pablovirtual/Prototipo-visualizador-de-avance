@@ -21,6 +21,120 @@
   border: 0;
 }
 
+.login-panel {
+  width: min(100%, 440px);
+  margin: 4rem auto;
+  padding: 2rem;
+  background: #ffffff;
+  border: 1px solid #dbe4ff;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgb(23 37 84 / 0.08);
+}
+
+.login-panel h1 {
+  margin-bottom: 0.75rem;
+}
+
+.login-description {
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.login-form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.login-form label {
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.login-form input {
+  width: 100%;
+  min-height: 2.8rem;
+  margin-bottom: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  color: #1f2937;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.6rem;
+}
+
+.login-form input:focus-visible {
+  outline: 3px solid rgb(79 70 229 / 0.25);
+  border-color: #4f46e5;
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.login-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.simulation-notice,
+.session-notice {
+  padding: 0.85rem 1rem;
+  color: #854d0e;
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 0.65rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.simulation-notice {
+  margin: 1.25rem 0 0;
+}
+
+.session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #ffffff;
+  border: 1px solid #dbe4ff;
+  border-radius: 0.75rem;
+}
+
+.session-bar p {
+  margin: 0;
+  color: #475569;
+  overflow-wrap: anywhere;
+}
+
+.session-button {
+  flex: none;
+  padding: 0.55rem 0.75rem;
+  color: #3730a3;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 0.55rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.session-button:hover {
+  background: #e0e7ff;
+}
+
+.session-button:focus-visible {
+  outline: 3px solid rgb(79 70 229 / 0.3);
+  outline-offset: 2px;
+}
+
+.session-notice {
+  margin: 0 0 1.5rem;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -593,6 +707,20 @@ h1 {
   .curriculum-page {
     width: min(100% - 1.25rem, 1200px);
     padding: 2.5rem 0;
+  }
+
+  .login-panel {
+    margin: 2rem auto;
+    padding: 1.4rem;
+  }
+
+  .session-bar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .session-button {
+    width: 100%;
   }
 
   .semester-group {
