@@ -161,7 +161,7 @@ test('genera, ajusta y recupera la simulación después de recargar', async ({ p
   const materiaAdicional = page.locator('.planner-subject input:not(:checked)').first()
   await expect(materiaAdicional).toBeVisible()
   await materiaAdicional.check({ force: true })
-  await expect(page.getByRole('alert')).toContainText('excedería el límite')
+  await expect(page.getByRole('alert')).toContainText('excede el límite')
   await expect(page.locator('.planner-subject input:checked')).toHaveCount(seleccionadasAntes + 1)
   await page.reload()
 
