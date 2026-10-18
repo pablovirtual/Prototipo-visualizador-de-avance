@@ -124,18 +124,20 @@ src/
   components/SimulatedLogin.vue Acceso simulado para la demostración
   components/StudyPlanSelector.vue Selección e importación de planes curriculares
   components/SemesterGroup.vue  Sección visual de cada semestre
+  components/SemesterPlanner.vue Simulador accesible del próximo semestre
   components/SubjectCard.vue    Tarjeta visual de una materia
   data/plan_estudios.json       Datos locales de la malla curricular
   utils/curriculum.js           Reglas de prerrequisitos, avance, filtros y estadísticas
   utils/studyPlans.js           Validación de JSON e identificación de planes personalizados
   utils/report.js               Generación del reporte PDF, cargado bajo demanda
+  utils/semesterPlanner.js      Reglas de recomendación y límites de la simulación
   App.vue                       Controla sesión, planes y vista principal
   main.js                       Punto de entrada de Vue
 tests/
   curriculum.test.js            Pruebas automatizadas de reglas, filtros y estadísticas
   report.test.js                Pruebas de contenido y generación del reporte PDF
 e2e/
-  curriculum.spec.js            Pruebas E2E de persistencia, filtros y descarga
+  curriculum.spec.js            Pruebas E2E de persistencia, simulación, filtros y descarga
 ```
 
 ## Datos curriculares
@@ -193,4 +195,21 @@ hay backend ni sincronización entre dispositivos.
 
 La opción **Descargar reporte PDF** genera `reporte-avance-curricular.pdf`. El documento
 incluye la fecha de generación, porcentaje de avance, materias y créditos completados,
-así como el detalle de cada asignatura cursada.
+así como el detalle de cada asignatura cursada y la simulación guardada.
+
+## Incremento del Sprint 7
+
+El Sprint 7 incorpora el **Simulador del próximo semestre**. La persona usuaria puede
+configurar un límite de 1 a 60 créditos, generar una recomendación con materias cuyos
+prerrequisitos ya estén aprobados y ajustar manualmente la selección. El algoritmo maximiza
+los créditos sin rebasar el límite y, cuando existen alternativas equivalentes, prioriza las
+materias que desbloquean más asignaturas futuras.
+
+La interfaz muestra créditos utilizados y restantes, además de las dependencias académicas
+favorecidas. Si una selección manual rebasa el límite, se conserva el estado válido y se
+muestra una advertencia accesible. Cada simulación se almacena por plan curricular en
+`localStorage` mediante la clave `avanceCurricular.simulacion.<id-del-plan>` y se normaliza
+al recuperar datos o modificar el avance.
+
+La verificación automatizada del incremento contempla límites, prerrequisitos, prioridad,
+persistencia, planes importados y recuperación después de recargar la aplicación.
