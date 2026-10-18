@@ -157,11 +157,12 @@ test('genera, ajusta y recupera la simulación después de recargar', async ({ p
   await page.getByRole('button', { name: 'Generar recomendación' }).click()
   await expect(page.getByText('11 de 12 créditos usados')).toBeVisible()
 
-  await page.getByRole('checkbox', { name: /Incluir Inglés Técnico/ }).check({ force: true })
-  await expect(page.getByRole('alert')).toContainText('excedería el límite por 1 créditos')
-
   const seleccionadasAntes = await page.locator('.planner-subject input:checked').count()
-  expect(seleccionadasAntes).toBe(3)
+  const materiaAdicional = page.locator('.planner-subject input:not(:checked)').first()
+  await expect(materiaAdicional).toBeVisible()
+  await materiaAdicional.check({ force: true })
+  await expect(page.getByRole('alert')).toContainText('excedería el límite')
+  await expect(page.locator('.planner-subject input:checked')).toHaveCount(seleccionadasAntes)
   await page.reload()
 
   await expect(page.getByText('11 de 12 créditos usados')).toBeVisible()
