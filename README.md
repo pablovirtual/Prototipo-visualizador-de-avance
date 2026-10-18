@@ -206,7 +206,7 @@ los créditos sin rebasar el límite y, cuando existen alternativas equivalentes
 materias que desbloquean más asignaturas futuras.
 
 La interfaz muestra créditos utilizados y restantes, además de las dependencias académicas
-favorecidas. Si una selección manual rebasa el límite, se conserva el estado válido y se
+favorecidas. Si una selección manual rebasa el límite, se conserva el ajuste y se
 muestra una advertencia accesible. Cada simulación se almacena por plan curricular en
 `localStorage` mediante la clave `avanceCurricular.simulacion.<id-del-plan>` y se normaliza
 al recuperar datos o modificar el avance.
