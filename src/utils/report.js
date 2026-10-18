@@ -3,9 +3,13 @@ import { calcularEstadisticas, normalizarMateriasCursadas } from './curriculum.j
 
 export const NOMBRE_REPORTE_PDF = 'reporte-avance-curricular.pdf'
 
-export function crearDatosReporte(materias, idsCursados, fecha = new Date()) {
+export function crearDatosReporte(materias, idsCursados, fecha = new Date(), simulacion = null) {
   const idsNormalizados = normalizarMateriasCursadas(idsCursados, materias)
   const conjuntoIds = new Set(idsNormalizados)
+  const idsSimulados = new Set(Array.isArray(simulacion?.idsSeleccionados) ? simulacion.idsSeleccionados : [])
+  const materiasSimuladas = materias.filter(
+    (materia) => idsSimulados.has(materia.id) && !conjuntoIds.has(materia.id),
+  )
 
   return {
     fecha: new Intl.DateTimeFormat('es-MX', {
@@ -15,11 +19,19 @@ export function crearDatosReporte(materias, idsCursados, fecha = new Date()) {
     }).format(fecha),
     estadisticas: calcularEstadisticas(materias, conjuntoIds),
     materiasCursadas: materias.filter((materia) => conjuntoIds.has(materia.id)),
+    simulacion: {
+      limiteCreditos: Number(simulacion?.limiteCreditos) || 0,
+      creditosSeleccionados: materiasSimuladas.reduce(
+        (total, materia) => total + materia.creditos,
+        0,
+      ),
+      materias: materiasSimuladas,
+    },
   }
 }
 
-export function crearReportePdf(materias, idsCursados, fecha = new Date()) {
-  const datos = crearDatosReporte(materias, idsCursados, fecha)
+export function crearReportePdf(materias, idsCursados, fecha = new Date(), simulacion = null) {
+  const datos = crearDatosReporte(materias, idsCursados, fecha, simulacion)
   const documento = new jsPDF({ unit: 'mm', format: 'a4' })
   const anchoPagina = documento.internal.pageSize.getWidth()
   const margen = 18
@@ -126,6 +138,30 @@ export function crearReportePdf(materias, idsCursados, fecha = new Date()) {
     })
   }
 
+  y += 5
+  documento.setTextColor(23, 37, 84)
+  documento.setFont('helvetica', 'bold')
+  documento.setFontSize(12)
+  documento.text('Simulación del próximo semestre', margen, y)
+  y += 7
+  documento.setFont('helvetica', 'normal')
+  documento.setTextColor(71, 85, 105)
+  documento.setFontSize(8.5)
+  documento.text(
+    `Créditos seleccionados: ${datos.simulacion.creditosSeleccionados} de ${datos.simulacion.limiteCreditos || 'sin límite registrado'}`,
+    margen,
+    y,
+  )
+  y += 6
+  if (datos.simulacion.materias.length === 0) {
+    documento.text('No se guardaron materias en la simulación.', margen, y)
+  } else {
+    const nombres = datos.simulacion.materias.map(
+      (materia) => `${materia.id} · ${materia.nombre} (${materia.creditos} créditos)`,
+    )
+    documento.text(nombres, margen, y, { maxWidth: anchoContenido })
+  }
+
   documento.setDrawColor(203, 213, 225)
   documento.line(margen, 275, anchoPagina - margen, 275)
   documento.setTextColor(100, 116, 139)
@@ -141,6 +177,6 @@ export function crearReportePdf(materias, idsCursados, fecha = new Date()) {
   return documento
 }
 
-export function descargarReportePdf(materias, idsCursados, fecha = new Date()) {
-  crearReportePdf(materias, idsCursados, fecha).save(NOMBRE_REPORTE_PDF)
+export function descargarReportePdf(materias, idsCursados, fecha = new Date(), simulacion = null) {
+  crearReportePdf(materias, idsCursados, fecha, simulacion).save(NOMBRE_REPORTE_PDF)
 }

@@ -149,3 +149,21 @@ test('rechaza planes JSON inválidos sin cambiar la malla seleccionada', async (
   await expect(page.getByRole('heading', { name: 'Plan de estudios predeterminado' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Cálculo Diferencial' })).toBeVisible()
 })
+
+test('genera, ajusta y recupera la simulación después de recargar', async ({ page }) => {
+  await expect(page.getByRole('heading', { name: 'Simulador del próximo semestre' })).toBeVisible()
+  await expect(page.getByLabel('Límite de créditos')).toHaveValue('12')
+
+  await page.getByRole('button', { name: 'Generar recomendación' }).click()
+  await expect(page.getByText('11 de 12 créditos usados')).toBeVisible()
+
+  await page.getByRole('checkbox', { name: /Incluir Inglés Técnico/ }).check({ force: true })
+  await expect(page.getByRole('alert')).toContainText('excedería el límite por 1 créditos')
+
+  const seleccionadasAntes = await page.locator('.planner-subject input:checked').count()
+  expect(seleccionadasAntes).toBe(3)
+  await page.reload()
+
+  await expect(page.getByText('11 de 12 créditos usados')).toBeVisible()
+  await expect(page.locator('.planner-subject input:checked')).toHaveCount(3)
+})

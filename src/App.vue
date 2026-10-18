@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import SimulatedLogin from './components/SimulatedLogin.vue'
 import SemesterGroup from './components/SemesterGroup.vue'
+import SemesterPlanner from './components/SemesterPlanner.vue'
 import StudyPlanSelector from './components/StudyPlanSelector.vue'
 import planEstudios from './data/plan_estudios.json'
 import {
@@ -15,11 +16,20 @@ import {
   validarPlanEstudios,
 } from './utils/curriculum.js'
 import { analizarPlanEstudios, crearIdPlanPersonalizado } from './utils/studyPlans.js'
+import {
+  LIMITE_CREDITOS_PREDETERMINADO,
+  contarDependientesTransitivos,
+  generarRecomendacionSemestre,
+  normalizarLimiteCreditos,
+  normalizarSeleccionSimulada,
+  obtenerMateriasElegibles,
+} from './utils/semesterPlanner.js'
 
 const STORAGE_KEY = 'avanceCurricular.materiasCursadas'
 const CUSTOM_PLANS_KEY = 'avanceCurricular.planesPersonalizados'
 const ACTIVE_PLAN_KEY = 'avanceCurricular.planActivo'
 const SESSION_KEY = 'avanceCurricular.sesionSimulada'
+const PLANNER_STORAGE_KEY = 'avanceCurricular.simulacion'
 const DEFAULT_PLAN_ID = 'predeterminado'
 const usuarioActivo = ref(null)
 const errorSesion = ref('')
@@ -72,6 +82,36 @@ function claveAvance(idPlan) {
   return `${STORAGE_KEY}.${idPlan}`
 }
 
+function claveSimulacion(idPlan) {
+  return `${PLANNER_STORAGE_KEY}.${idPlan}`
+}
+
+function cargarSimulacion(idPlan, plan, idsCursados) {
+  try {
+    const datos = JSON.parse(localStorage.getItem(claveSimulacion(idPlan)) ?? '{}')
+    const limiteCreditos = normalizarLimiteCreditos(
+      datos.limiteCreditos ?? LIMITE_CREDITOS_PREDETERMINADO,
+    )
+
+    return {
+      limiteCreditos,
+      idsSeleccionados: normalizarSeleccionSimulada(
+        datos.idsSeleccionados,
+        plan,
+        idsCursados,
+        limiteCreditos,
+      ),
+    }
+  } catch (error) {
+    console.error('No se pudo leer la simulación guardada:', error)
+    errorPlan.value = 'No se pudo leer la simulación de este plan desde el navegador.'
+    return {
+      limiteCreditos: LIMITE_CREDITOS_PREDETERMINADO,
+      idsSeleccionados: [],
+    }
+  }
+}
+
 function cargarMateriasCursadas(idPlan, plan) {
   try {
     const clave = claveAvance(idPlan)
@@ -95,11 +135,66 @@ function cargarMateriasCursadas(idPlan, plan) {
 const materiasCursadas = ref(
   cargarMateriasCursadas(idPlanActivo.value, planActivo.value.subjects),
 )
+const simulacionInicial = cargarSimulacion(
+  idPlanActivo.value,
+  planActivo.value.subjects,
+  materiasCursadas.value,
+)
+const limiteCreditosSimulacion = ref(simulacionInicial.limiteCreditos)
+const materiasSimuladas = ref(simulacionInicial.idsSeleccionados)
+const mensajeSimulacion = ref('')
+const errorSimulacion = ref(false)
 const mensajeEstado = ref('')
 const errorReporte = ref('')
 const generandoReporte = ref(false)
 const filtroActivo = ref('todas')
 const idsMateriasCursadas = computed(() => new Set(materiasCursadas.value))
+const idsMateriasSimuladas = computed(() => new Set(materiasSimuladas.value))
+const materiasElegiblesSimulacion = computed(() =>
+  obtenerMateriasElegibles(materias.value, idsMateriasCursadas.value),
+)
+const materiasSeleccionadasSimulacion = computed(() =>
+  materiasElegiblesSimulacion.value.filter((materia) =>
+    idsMateriasSimuladas.value.has(materia.id),
+  ),
+)
+const creditosSeleccionadosSimulacion = computed(() =>
+  materiasSeleccionadasSimulacion.value.reduce(
+    (total, materia) => total + materia.creditos,
+    0,
+  ),
+)
+const prioridadPorMateria = computed(() =>
+  Object.fromEntries(
+    materiasElegiblesSimulacion.value.map((materia) => [
+      materia.id,
+      contarDependientesTransitivos(materia.id, materias.value),
+    ]),
+  ),
+)
+const dependenciasFavorecidas = computed(() =>
+  materiasSeleccionadasSimulacion.value.reduce(
+    (total, materia) => total + (prioridadPorMateria.value[materia.id] ?? 0),
+    0,
+  ),
+)
+
+function guardarSimulacion(idPlan = idPlanActivo.value) {
+  localStorage.setItem(
+    claveSimulacion(idPlan),
+    JSON.stringify({
+      limiteCreditos: limiteCreditosSimulacion.value,
+      idsSeleccionados: materiasSimuladas.value,
+    }),
+  )
+}
+
+function establecerSimulacion(simulacion) {
+  limiteCreditosSimulacion.value = simulacion.limiteCreditos
+  materiasSimuladas.value = simulacion.idsSeleccionados
+  mensajeSimulacion.value = ''
+  errorSimulacion.value = false
+}
 
 const materiasPorSemestre = computed(() => {
   const grupos = materias.value.reduce((resultado, materia) => {
@@ -189,6 +284,30 @@ watch([materiasCursadas, idPlanActivo], ([ids, idPlan]) => {
   }
 })
 
+watch([limiteCreditosSimulacion, materiasSimuladas], () => {
+  try {
+    guardarSimulacion()
+  } catch (error) {
+    console.error('No se pudo guardar la simulación:', error)
+    mensajeSimulacion.value = 'No se pudo guardar la simulación en este navegador.'
+    errorSimulacion.value = true
+  }
+}, { deep: true })
+
+watch(materiasCursadas, () => {
+  const seleccionValida = normalizarSeleccionSimulada(
+    materiasSimuladas.value,
+    materias.value,
+    materiasCursadas.value,
+    limiteCreditosSimulacion.value,
+  )
+  if (seleccionValida.length !== materiasSimuladas.value.length) {
+    materiasSimuladas.value = seleccionValida
+    mensajeSimulacion.value = 'La simulación se actualizó conforme al avance registrado.'
+    errorSimulacion.value = false
+  }
+})
+
 function seleccionarPlan(idPlan) {
   if (idPlan === idPlanActivo.value || !planes.value.some((plan) => plan.id === idPlan)) {
     return
@@ -199,9 +318,13 @@ function seleccionarPlan(idPlan) {
       claveAvance(idPlanActivo.value),
       JSON.stringify(materiasCursadas.value),
     )
+    guardarSimulacion(idPlanActivo.value)
     errorPlan.value = ''
     idPlanActivo.value = idPlan
     materiasCursadas.value = cargarMateriasCursadas(idPlan, planActivo.value.subjects)
+    establecerSimulacion(
+      cargarSimulacion(idPlan, planActivo.value.subjects, materiasCursadas.value),
+    )
     filtroActivo.value = 'todas'
     mensajeEstado.value = `Se cambió a ${planActivo.value.name}.`
   } catch (error) {
@@ -230,10 +353,12 @@ async function importarPlan(archivo) {
       claveAvance(idPlanActivo.value),
       JSON.stringify(materiasCursadas.value),
     )
+    guardarSimulacion(idPlanActivo.value)
     localStorage.setItem(CUSTOM_PLANS_KEY, JSON.stringify(planesActualizados))
     planesPersonalizados.value = planesActualizados
     idPlanActivo.value = id
     materiasCursadas.value = cargarMateriasCursadas(id, plan)
+    establecerSimulacion(cargarSimulacion(id, plan, materiasCursadas.value))
     filtroActivo.value = 'todas'
     mensajeEstado.value = `Se cargó el plan ${nombre}.`
   } catch (error) {
@@ -291,12 +416,72 @@ function seleccionarFiltro(filtro) {
   filtroActivo.value = filtro
 }
 
+function actualizarLimiteSimulacion(valor) {
+  const limite = normalizarLimiteCreditos(valor)
+  limiteCreditosSimulacion.value = limite
+  materiasSimuladas.value = normalizarSeleccionSimulada(
+    materiasSimuladas.value,
+    materias.value,
+    materiasCursadas.value,
+    limite,
+  )
+  mensajeSimulacion.value = 'Se actualizó el límite y se conservó la selección compatible.'
+  errorSimulacion.value = false
+}
+
+function generarRecomendacion() {
+  const recomendacion = generarRecomendacionSemestre(
+    materias.value,
+    materiasCursadas.value,
+    limiteCreditosSimulacion.value,
+  )
+  materiasSimuladas.value = recomendacion.materiasSeleccionadas.map((materia) => materia.id)
+  mensajeSimulacion.value = recomendacion.materiasSeleccionadas.length > 0
+    ? `Recomendación generada con ${recomendacion.creditosTotales} créditos.`
+    : 'No hay materias disponibles con los prerrequisitos actuales.'
+  errorSimulacion.value = false
+}
+
+function alternarMateriaSimulada(idMateria) {
+  if (idsMateriasSimuladas.value.has(idMateria)) {
+    materiasSimuladas.value = materiasSimuladas.value.filter((id) => id !== idMateria)
+    mensajeSimulacion.value = 'Materia retirada de la simulación.'
+    errorSimulacion.value = false
+    return
+  }
+
+  const materia = materiasElegiblesSimulacion.value.find((item) => item.id === idMateria)
+  if (!materia) {
+    return
+  }
+
+  const nuevoTotal = creditosSeleccionadosSimulacion.value + materia.creditos
+  if (nuevoTotal > limiteCreditosSimulacion.value) {
+    mensajeSimulacion.value = `No se agregó ${materia.nombre}: excedería el límite por ${nuevoTotal - limiteCreditosSimulacion.value} créditos.`
+    errorSimulacion.value = true
+    return
+  }
+
+  materiasSimuladas.value = [...materiasSimuladas.value, idMateria]
+  mensajeSimulacion.value = 'Materia agregada a la simulación.'
+  errorSimulacion.value = false
+}
+
+function limpiarSimulacion() {
+  materiasSimuladas.value = []
+  mensajeSimulacion.value = 'Se limpió la selección de la simulación.'
+  errorSimulacion.value = false
+}
+
 async function descargarReporte() {
   generandoReporte.value = true
   errorReporte.value = ''
   try {
     const { descargarReportePdf } = await import('./utils/report.js')
-    descargarReportePdf(materias.value, materiasCursadas.value)
+    descargarReportePdf(materias.value, materiasCursadas.value, new Date(), {
+      limiteCreditos: limiteCreditosSimulacion.value,
+      idsSeleccionados: materiasSimuladas.value,
+    })
     mensajeEstado.value = 'Se descargó el reporte PDF de tu avance curricular.'
   } catch (error) {
     console.error('No se pudo generar el reporte PDF:', error)
@@ -418,6 +603,21 @@ async function descargarReporte() {
         <li><span class="status-dot status-dot--blocked"></span>Bloqueada</li>
       </ul>
     </section>
+
+    <SemesterPlanner
+      :materias="materiasElegiblesSimulacion"
+      :ids-seleccionados="idsMateriasSimuladas"
+      :limite-creditos="limiteCreditosSimulacion"
+      :creditos-seleccionados="creditosSeleccionadosSimulacion"
+      :dependencias-favorecidas="dependenciasFavorecidas"
+      :prioridad-por-materia="prioridadPorMateria"
+      :mensaje="mensajeSimulacion"
+      :es-error="errorSimulacion"
+      @update-limit="actualizarLimiteSimulacion"
+      @recommend="generarRecomendacion"
+      @toggle="alternarMateriaSimulada"
+      @clear="limpiarSimulacion"
+    />
 
     <section class="filter-panel" aria-labelledby="filter-title">
       <div class="filter-heading">
