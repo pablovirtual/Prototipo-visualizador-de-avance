@@ -31,3 +31,16 @@ test('genera un documento PDF válido', () => {
   assert.equal(encabezado, '%PDF-')
   assert.ok(bytes.length > 1000)
 })
+
+test('incorpora la simulación académica en los datos del reporte', () => {
+  const datos = crearDatosReporte(
+    materias,
+    ['MAT101'],
+    new Date('2026-10-17T12:00:00'),
+    { limiteCreditos: 8, idsSeleccionados: ['PRO101', 'PRO201'] },
+  )
+
+  assert.equal(datos.simulacion.limiteCreditos, 8)
+  assert.equal(datos.simulacion.creditosSeleccionados, 8)
+  assert.deepEqual(datos.simulacion.materias.map((materia) => materia.id), ['PRO101', 'PRO201'])
+})
