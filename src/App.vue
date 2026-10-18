@@ -457,7 +457,8 @@ function alternarMateriaSimulada(idMateria) {
 
   const nuevoTotal = creditosSeleccionadosSimulacion.value + materia.creditos
   if (nuevoTotal > limiteCreditosSimulacion.value) {
-    mensajeSimulacion.value = `No se agregó ${materia.nombre}: excedería el límite por ${nuevoTotal - limiteCreditosSimulacion.value} créditos.`
+    materiasSimuladas.value = [...materiasSimuladas.value, idMateria]
+    mensajeSimulacion.value = `La selección excede el límite por ${nuevoTotal - limiteCreditosSimulacion.value} créditos.`
     errorSimulacion.value = true
     return
   }
