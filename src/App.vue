@@ -142,8 +142,17 @@ const simulacionInicial = cargarSimulacion(
 )
 const limiteCreditosSimulacion = ref(simulacionInicial.limiteCreditos)
 const materiasSimuladas = ref(simulacionInicial.idsSeleccionados)
-const mensajeSimulacion = ref('')
-const errorSimulacion = ref(false)
+const totalCreditosInicial = simulacionInicial.idsSeleccionados.reduce((total, id) => {
+  const materia = planActivo.value.subjects.find((m) => m.id === id)
+  return total + (materia?.creditos ?? 0)
+}, 0)
+const excesoInicial = totalCreditosInicial > simulacionInicial.limiteCreditos
+const mensajeSimulacion = ref(
+  excesoInicial
+    ? `La selección excede el límite por ${totalCreditosInicial - simulacionInicial.limiteCreditos} créditos.`
+    : '',
+)
+const errorSimulacion = ref(excesoInicial)
 const mensajeEstado = ref('')
 const errorReporte = ref('')
 const generandoReporte = ref(false)
@@ -192,8 +201,17 @@ function guardarSimulacion(idPlan = idPlanActivo.value) {
 function establecerSimulacion(simulacion) {
   limiteCreditosSimulacion.value = simulacion.limiteCreditos
   materiasSimuladas.value = simulacion.idsSeleccionados
-  mensajeSimulacion.value = ''
-  errorSimulacion.value = false
+  const total = simulacion.idsSeleccionados.reduce((acumulado, id) => {
+    const materia = planActivo.value.subjects.find((m) => m.id === id)
+    return acumulado + (materia?.creditos ?? 0)
+  }, 0)
+  if (total > simulacion.limiteCreditos) {
+    mensajeSimulacion.value = `La selección excede el límite por ${total - simulacion.limiteCreditos} créditos.`
+    errorSimulacion.value = true
+  } else {
+    mensajeSimulacion.value = ''
+    errorSimulacion.value = false
+  }
 }
 
 const materiasPorSemestre = computed(() => {
@@ -425,8 +443,13 @@ function actualizarLimiteSimulacion(valor) {
     materiasCursadas.value,
     limite,
   )
-  mensajeSimulacion.value = 'Se actualizó el límite y se conservó la selección compatible.'
-  errorSimulacion.value = false
+  if (creditosSeleccionadosSimulacion.value > limite) {
+    mensajeSimulacion.value = `La selección excede el límite por ${creditosSeleccionadosSimulacion.value - limite} créditos.`
+    errorSimulacion.value = true
+  } else {
+    mensajeSimulacion.value = 'Se actualizó el límite y se conservó la selección compatible.'
+    errorSimulacion.value = false
+  }
 }
 
 function generarRecomendacion() {

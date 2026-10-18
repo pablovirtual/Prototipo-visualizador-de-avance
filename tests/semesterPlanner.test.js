@@ -55,8 +55,8 @@ test('prioriza materias que desbloquean más dependencias cuando empatan los cr�
   )
 })
 
-test('normaliza la selección persistida y respeta el límite', () => {
-  assert.deepEqual(normalizarSeleccionSimulada(['A', 'B', 'A', 'C'], materias, [], 6), ['A'])
+test('normaliza la selección persistida conservando materias elegibles aunque excedan el límite', () => {
+  assert.deepEqual(normalizarSeleccionSimulada(['A', 'B', 'A', 'C'], materias, [], 6), ['A', 'B'])
 })
 
 test('genera recomendaciones para un plan importado', () => {

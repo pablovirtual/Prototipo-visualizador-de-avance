@@ -131,7 +131,7 @@ export function normalizarSeleccionSimulada(
   idsSeleccionados,
   materias,
   idsCursados,
-  limiteCreditos,
+  _limiteCreditos,
 ) {
   if (!Array.isArray(idsSeleccionados)) {
     return []
@@ -140,20 +140,17 @@ export function normalizarSeleccionSimulada(
   const elegibles = new Map(
     obtenerMateriasElegibles(materias, idsCursados).map((materia) => [materia.id, materia]),
   )
-  const limite = normalizarLimiteCreditos(limiteCreditos)
   const resultado = []
   const vistos = new Set()
-  let creditos = 0
 
   for (const id of idsSeleccionados) {
     const materia = elegibles.get(id)
-    if (!materia || vistos.has(id) || creditos + materia.creditos > limite) {
+    if (!materia || vistos.has(id)) {
       continue
     }
 
     vistos.add(id)
     resultado.push(id)
-    creditos += materia.creditos
   }
 
   return resultado
